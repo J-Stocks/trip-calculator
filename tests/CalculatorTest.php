@@ -6,9 +6,9 @@ use Carbon\Carbon as c;
 
 class CalculatorTest extends TestCase
 {
-    const SCENARIO_A = 0;
-    const SCENARIO_B = 1;
-    const SCENARIO_C = 2;
+    const SCENARIO_A = 1;
+    const SCENARIO_B = 2;
+    const SCENARIO_C = 3;
 
     /**
      * Return a new calculator instance, set up with rates.
@@ -22,10 +22,13 @@ class CalculatorTest extends TestCase
         // TODO: return a calculator set up with the correct rates for each scenario
         switch ($case) {
             case static::SCENARIO_A:
+                return new Calculator(static::SCENARIO_A);
             case static::SCENARIO_B:
+                return new Calculator(static::SCENARIO_B);
             case static::SCENARIO_C:
+                return new Calculator(static::SCENARIO_C);
             default:
-                return new Calculator();
+                return new Calculator(0);
         }
     }
 
