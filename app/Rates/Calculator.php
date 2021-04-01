@@ -9,6 +9,8 @@ use Carbon\Carbon;
 
 class Calculator implements CalculatorContract
 {
+    const MINUTES_PER_DAY = 1440;
+
     /**
      * The Rate that should be applied to this calculation.
      *
@@ -37,10 +39,28 @@ class Calculator implements CalculatorContract
      */
     public function calculate(Carbon $start, Carbon $end, int $distance): ResultContract
     {
-        $minutes = clamp($start)->diffInMinutes(clamp($end), true);
-        return new Result(
-            $minutes * $this->rate->price_per_minute,
-            new Distance($distance * $this->rate->price_per_distance)
+        $start = clamp($start);
+        $end = clamp($end);
+        $minutes = $start->diffInMinutes($end, true);
+        $distanceOutput = max(
+            0,
+            ($distance - $this->rate->free_distance) * $this->rate->price_per_distance
         );
+        if ($minutes < 15) {
+            $value = 0;
+        } else if ($this->rate->daily_cap === null) {
+            $value = $minutes * $this->rate->price_per_minute;
+        } else {
+            $days = $start->diffInDays($end);
+            $fullDays = min(
+                $days * $this->rate->daily_cap,
+                $days * static::MINUTES_PER_DAY * $this->rate->price_per_minute
+            );
+            $remainingMinutes = min(
+                $this->rate->daily_cap,
+                ($minutes % static::MINUTES_PER_DAY) * $this->rate->price_per_minute);
+            $value = $fullDays + $remainingMinutes;
+        }
+        return new Result($value, new Distance($distanceOutput));
     }
 }
