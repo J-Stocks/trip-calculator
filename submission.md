@@ -1,6 +1,7 @@
 #General
 - No additional Packages have been used.
 - Scenarios A and B have been implemented.
+- Attempted scenario C, but the solution is incomplete.
 
 # Set up
 - Checkout the repo from GitHub: `git clone git@github.com:J-Stocks/trip-calculator.git`
