@@ -41,26 +41,61 @@ class Calculator implements CalculatorContract
     {
         $start = clamp($start);
         $end = clamp($end);
-        $minutes = $start->diffInMinutes($end, true);
-        $distanceOutput = max(
-            0,
-            ($distance - $this->rate->free_distance) * $this->rate->price_per_distance
-        );
-        if ($minutes < 15) {
-            $value = 0;
-        } else if ($this->rate->daily_cap === null) {
-            $value = $minutes * $this->rate->price_per_minute;
-        } else {
-            $days = $start->diffInDays($end);
-            $fullDays = min(
-                $days * $this->rate->daily_cap,
-                $days * static::MINUTES_PER_DAY * $this->rate->price_per_minute
+
+        $timeOutput = 0;
+        $tempStart = $start->copy();
+        while ($tempStart->lessThan($end)) {
+            $period = $this
+                ->rate
+                ->periods()
+//                ->whereJsonContains('months_in_year', $time->month)
+//                ->whereJsonContains('days_in_month', $time->day)
+//                ->whereJsonContains('days_in_week', $time->dayOfWeek)
+                ->where('start', '<=', $tempStart->timestamp)
+                ->where('end', '>=', $tempStart->timestamp)
+                ->first();
+            $periodEnd = Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                $tempStart->toDateString().' '.$period->end
             );
-            $remainingMinutes = min(
-                $this->rate->daily_cap,
-                ($minutes % static::MINUTES_PER_DAY) * $this->rate->price_per_minute);
-            $value = $fullDays + $remainingMinutes;
+            $periodEnd->addMinutes(1);
+            if ($periodEnd->lessThanOrEqualTo($end)) {
+                $minutes = $tempStart->diffInMinutes($periodEnd, true);
+            } else {
+                $minutes = $tempStart->diffInMinutes($end, true);
+            }
+            //Increment caps
+            //Increment running total
+            $timeOutput += $minutes * $period->price_per_minute;
+            $tempStart = $periodEnd->copy();
         }
-        return new Result($value, new Distance($distanceOutput));
+
+        $tempDistance = 0;
+        $distanceOutput = 0;
+        while ($tempDistance <= $distance) {
+            $range = $this
+                ->rate
+                ->ranges()
+                ->whereNotNull('end')
+                ->where('start', '<=', $tempDistance)
+                ->where('end', '>=', $tempDistance)
+                ->orWhere(function ($query) use ($tempDistance) {
+                    $query->where('start', '<=', $tempDistance)->whereNull('end');
+                })
+                ->orderBy('start')
+                ->first()
+            ;
+            if ($range->end === null || ($range->end !== null && $range->end >= $distance)) {
+                $distanceOutput += ($distance - $range->start) * $range->price_per_distance;
+            } else {
+                $distanceOutput += ($range->end - $range->start) * $range->price_per_distance;
+            }
+            if ($range->end === null) {
+                $tempDistance = $distance + 1;
+            } else {
+                $tempDistance = $range->end + 1;
+            }
+        }
+        return new Result($timeOutput, new Distance($distanceOutput));
     }
 }

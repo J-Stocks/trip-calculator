@@ -12,4 +12,19 @@ class Rate extends Model
      * @var bool
      */
     protected static $unguarded = true;
+
+    public function caps()
+    {
+        return $this->hasMany(Cap::class);
+    }
+
+    public function periods()
+    {
+        return $this->hasMany(Period::class);
+    }
+
+    public function ranges()
+    {
+        return $this->hasMany(Range::class);
+    }
 }

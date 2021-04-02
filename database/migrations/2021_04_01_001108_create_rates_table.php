@@ -15,10 +15,6 @@ class CreateRatesTable extends Migration
     {
         Schema::create('rates', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->double('price_per_minute');
-            $table->double('price_per_distance');
-            $table->double('daily_cap')->nullable();
-            $table->double('free_distance');
             $table->timestamps();
         });
     }
